@@ -11,7 +11,7 @@ type OAuthInfo struct {
 }
 
 type OAuther struct {
-	GitHub, Google, Twitter bool
+	GitHub, Lottos, Google, Twitter bool
 	OAuthInfos              map[string]*OAuthInfo
 }
 

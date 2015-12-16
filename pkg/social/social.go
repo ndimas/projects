@@ -42,7 +42,7 @@ func NewOAuthService() {
 	setting.OAuthService = &setting.OAuther{}
 	setting.OAuthService.OAuthInfos = make(map[string]*setting.OAuthInfo)
 
-	allOauthes := []string{"github", "google"}
+	allOauthes := []string{"github", "google", "lottos"}
 
 	for _, name := range allOauthes {
 		sec := setting.Cfg.Section("auth." + name)
@@ -88,6 +88,21 @@ func NewOAuthService() {
 				allowedOrganizations: allowedOrganizations,
 			}
 		}
+
+    // GitHub.
+    if name == "lottos" {
+      setting.OAuthService.Lottos = true
+      teamIds := sec.Key("team_ids").Ints(",")
+      allowedOrganizations := sec.Key("allowed_organizations").Strings(" ")
+      SocialMap["lottos"] = &SocialGithub{
+        Config:               &config,
+        allowedDomains:       info.AllowedDomains,
+        apiUrl:               info.ApiUrl,
+        allowSignup:          info.AllowSignup,
+        teamIds:              teamIds,
+        allowedOrganizations: allowedOrganizations,
+      }
+    }
 
 		// Google.
 		if name == "google" {

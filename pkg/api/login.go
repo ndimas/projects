@@ -27,8 +27,9 @@ func LoginView(c *middleware.Context) {
 
 	viewData.Settings["googleAuthEnabled"] = setting.OAuthService.Google
 	viewData.Settings["githubAuthEnabled"] = setting.OAuthService.GitHub
-	viewData.Settings["disableUserSignUp"] = !setting.AllowUserSignUp
-	viewData.Settings["loginHint"] = setting.LoginHint
+  viewData.Settings["lottosAuthEnabled"] = setting.OAuthService.Lottos
+	viewData.Settings["disableUserSignUp"] = true  //!setting.AllowUserSignUp
+	viewData.Settings["loginHint"]         = false //setting.LoginHint
 
 	if !tryLoginUsingRememberCookie(c) {
 		c.HTML(200, VIEW_INDEX, viewData)

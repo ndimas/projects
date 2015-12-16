@@ -17,10 +17,11 @@ function (angular, coreModule, config) {
 
     $scope.googleAuthEnabled = config.googleAuthEnabled;
     $scope.githubAuthEnabled = config.githubAuthEnabled;
+    $scope.lottosAuthEnabled = config.lottosAuthEnabled;
     $scope.disableUserSignUp = config.disableUserSignUp;
-    $scope.loginHint     = config.loginHint;
+    $scope.loginHint         = config.loginHint;
 
-    $scope.loginMode = true;
+    $scope.loginMode = false;
     $scope.submitBtnText = 'Log in';
 
     $scope.init = function() {
