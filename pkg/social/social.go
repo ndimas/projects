@@ -38,6 +38,14 @@ var (
 	SocialMap     = make(map[string]SocialConnector)
 )
 
+var (
+  ErrMissingTeamMembership = errors.New("User not a member of one of the required teams")
+)
+
+var (
+  ErrMissingOrganizationMembership = errors.New("User not a member of one of the required organizations")
+)
+
 func NewOAuthService() {
 	setting.OAuthService = &setting.OAuther{}
 	setting.OAuthService.OAuthInfos = make(map[string]*setting.OAuthInfo)
@@ -89,12 +97,12 @@ func NewOAuthService() {
 			}
 		}
 
-    // GitHub.
+    // Lottos.
     if name == "lottos" {
       setting.OAuthService.Lottos = true
       teamIds := sec.Key("team_ids").Ints(",")
       allowedOrganizations := sec.Key("allowed_organizations").Strings(" ")
-      SocialMap["lottos"] = &SocialGithub{
+      SocialMap["lottos"] = &SocialLottos{
         Config:               &config,
         allowedDomains:       info.AllowedDomains,
         apiUrl:               info.ApiUrl,
@@ -138,14 +146,6 @@ type SocialGithub struct {
 	allowSignup          bool
 	teamIds              []int
 }
-
-var (
-	ErrMissingTeamMembership = errors.New("User not a member of one of the required teams")
-)
-
-var (
-	ErrMissingOrganizationMembership = errors.New("User not a member of one of the required organizations")
-)
 
 func (s *SocialGithub) Type() int {
 	return int(models.GITHUB)
@@ -378,4 +378,204 @@ func (s *SocialGoogle) UserInfo(token *oauth2.Token) (*BasicUserInfo, error) {
 		Name:     data.Name,
 		Email:    data.Email,
 	}, nil
+}
+
+
+// ____           __    __
+//|    |    _____/  |__/  |_  ____  ______
+//|    |   /  _ \   __\   __\/  _ \/  ___/
+//|    |__(  <_> )  |  |  | (  <_> )___ \
+//|_______ \____/|__|  |__|  \____/____  >
+//                             \/
+
+type SocialLottos struct {
+  *oauth2.Config
+  allowedDomains       []string
+  allowedOrganizations []string
+  apiUrl               string
+  allowSignup          bool
+  teamIds              []int
+}
+
+func (s *SocialLottos) Type() int {
+  return int(models.LOTTOS)
+}
+
+func (s *SocialLottos) IsEmailAllowed(email string) bool {
+  return isEmailAllowed(email, s.allowedDomains)
+}
+
+func (s *SocialLottos) IsSignupAllowed() bool {
+  return s.allowSignup
+}
+
+func (s *SocialLottos) IsTeamMember(client *http.Client) bool {
+  if len(s.teamIds) == 0 {
+    return true
+  }
+
+  teamMemberships, err := s.FetchTeamMemberships(client)
+  if err != nil {
+    return false
+  }
+
+  for _, teamId := range s.teamIds {
+    for _, membershipId := range teamMemberships {
+      if teamId == membershipId {
+        return true
+      }
+    }
+  }
+
+  return false
+}
+
+func (s *SocialLottos) IsOrganizationMember(client *http.Client) bool {
+  if len(s.allowedOrganizations) == 0 {
+    return true
+  }
+
+  organizations, err := s.FetchOrganizations(client)
+  if err != nil {
+    return false
+  }
+
+  for _, allowedOrganization := range s.allowedOrganizations {
+    for _, organization := range organizations {
+      if organization == allowedOrganization {
+        return true
+      }
+    }
+  }
+
+  return false
+}
+
+func (s *SocialLottos) FetchPrivateEmail(client *http.Client) (string, error) {
+  type Record struct {
+    Email    string `json:"email"`
+    Primary  bool   `json:"primary"`
+    Verified bool   `json:"verified"`
+  }
+
+  emailsUrl := fmt.Sprintf(s.apiUrl + "/emails")
+  r, err := client.Get(emailsUrl)
+  if err != nil {
+    return "", err
+  }
+
+  defer r.Body.Close()
+
+  var records []Record
+
+  if err = json.NewDecoder(r.Body).Decode(&records); err != nil {
+    return "", err
+  }
+
+  var email = ""
+  for _, record := range records {
+    if record.Primary {
+      email = record.Email
+    }
+  }
+
+  return email, nil
+}
+
+func (s *SocialLottos) FetchTeamMemberships(client *http.Client) ([]int, error) {
+  type Record struct {
+    Id int `json:"id"`
+  }
+
+  membershipUrl := fmt.Sprintf(s.apiUrl + "/teams")
+  r, err := client.Get(membershipUrl)
+  if err != nil {
+    return nil, err
+  }
+
+  defer r.Body.Close()
+
+  var records []Record
+
+  if err = json.NewDecoder(r.Body).Decode(&records); err != nil {
+    return nil, err
+  }
+
+  var ids = make([]int, len(records))
+  for i, record := range records {
+    ids[i] = record.Id
+  }
+
+  return ids, nil
+}
+
+func (s *SocialLottos) FetchOrganizations(client *http.Client) ([]string, error) {
+  type Record struct {
+    Login string `json:"login"`
+  }
+
+  url := fmt.Sprintf(s.apiUrl + "/orgs")
+  r, err := client.Get(url)
+  if err != nil {
+    return nil, err
+  }
+
+  defer r.Body.Close()
+
+  var records []Record
+
+  if err = json.NewDecoder(r.Body).Decode(&records); err != nil {
+    return nil, err
+  }
+
+  var logins = make([]string, len(records))
+  for i, record := range records {
+    logins[i] = record.Login
+  }
+
+  return logins, nil
+}
+
+func (s *SocialLottos) UserInfo(token *oauth2.Token) (*BasicUserInfo, error) {
+  var data struct {
+    Id    int    `json:"id"`
+    Name  string `json:"login"`
+    Email string `json:"email"`
+  }
+
+  var err error
+  client := s.Client(oauth2.NoContext, token)
+  r, err := client.Get(s.apiUrl)
+  if err != nil {
+    return nil, err
+  }
+
+  defer r.Body.Close()
+
+  if err = json.NewDecoder(r.Body).Decode(&data); err != nil {
+    return nil, err
+  }
+
+  userInfo := &BasicUserInfo{
+    Identity: strconv.Itoa(data.Id),
+    Name:     data.Name,
+    Email:    data.Email,
+  }
+
+  if !s.IsTeamMember(client) {
+    return nil, ErrMissingTeamMembership
+  }
+
+  if !s.IsOrganizationMember(client) {
+    return nil, ErrMissingOrganizationMembership
+  }
+
+  if userInfo.Email == "" {
+    userInfo.Email, err = s.FetchPrivateEmail(client)
+    if err != nil {
+      return nil, err
+    }
+  }
+
+  return userInfo, nil
 }

@@ -90,6 +90,9 @@ func LoginApiPing(c *middleware.Context) {
 }
 
 func LoginPost(c *middleware.Context, cmd dtos.LoginCommand) Response {
+
+  log.Info("login.go ::: Entered LoginPost")
+
 	authQuery := login.LoginUserQuery{
 		Username: cmd.User,
 		Password: cmd.Password,
