@@ -101,6 +101,7 @@ var (
 	// Auth proxy settings
 	AuthProxyEnabled        bool
 	AuthProxyHeaderName     string
+  RedirectUrl             string
 	AuthProxyHeaderProperty string
 	AuthProxyAutoSignUp     bool
 
@@ -456,9 +457,10 @@ func NewConfigContext(args *CommandLineArgs) error {
 	AnonymousOrgRole = Cfg.Section("auth.anonymous").Key("org_role").String()
 
 	// auth proxy
-	authProxy := Cfg.Section("auth.proxy")
-	AuthProxyEnabled = authProxy.Key("enabled").MustBool(false)
+	authProxy          := Cfg.Section("auth.proxy")
+	AuthProxyEnabled    = authProxy.Key("enabled").MustBool(false)
 	AuthProxyHeaderName = authProxy.Key("header_name").String()
+
 	AuthProxyHeaderProperty = authProxy.Key("header_property").String()
 	AuthProxyAutoSignUp = authProxy.Key("auto_sign_up").MustBool(true)
 

@@ -206,6 +206,8 @@ func (ctx *Context) Handle(status int, title string, err error) {
 	switch status {
 	case 200:
 		metrics.M_Page_Status_200.Inc(1)
+  case 401:
+    metrics.M_Page_Status_401.Inc(1)
 	case 404:
 		metrics.M_Page_Status_404.Inc(1)
 	case 500:
@@ -242,6 +244,9 @@ func (ctx *Context) JsonApiErr(status int, message string, err error) {
 	case 404:
 		metrics.M_Api_Status_404.Inc(1)
 		resp["message"] = "Not Found"
+  case 401:
+    metrics.M_Api_Status_401.Inc(1)
+    resp["message"] = "Access is denied"
 	case 500:
 		metrics.M_Api_Status_500.Inc(1)
 		resp["message"] = "Internal Server Error"

@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	NotFound    = ApiError(404, "Not found", nil)
-	ServerError = ApiError(500, "Server error", nil)
+	NotFound        = ApiError(404, "Not found"       , nil)
+  AccessIsDenied  = ApiError(401, "Access is denied", nil)
+	ServerError     = ApiError(500, "Server error"    , nil)
 )
 
 type Response interface {
@@ -86,9 +87,12 @@ func ApiError(status int, message string, err error) *NormalResponse {
 	}
 
 	switch status {
-	case 404:
-		metrics.M_Api_Status_404.Inc(1)
-		resp["message"] = "Not Found"
+  case 404:
+    metrics.M_Api_Status_404.Inc(1)
+    resp["message"] = "Not Found"
+  case 401:
+    metrics.M_Api_Status_401.Inc(1)
+    resp["message"] = "Access is denied"
 	case 500:
 		metrics.M_Api_Status_500.Inc(1)
 		resp["message"] = "Internal Server Error"
