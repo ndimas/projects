@@ -30,7 +30,7 @@ func initContextWithAuthProxy(ctx *Context) bool {
     return false
   }
 
-  valid, username, authorities := isValidToken(proxyHeaderValue)//isValidToken(proxyHeaderValue, func() {  })
+  valid, username, authorities := isValidToken(proxyHeaderValue)
 
   if ( !valid ) {
     log.Debug("auth_proxy.go ::: isValidToken returning %v", valid)
@@ -49,7 +49,7 @@ func initContextWithAuthProxy(ctx *Context) bool {
     }
 
     if setting.AuthProxyAutoSignUp {
-      cmd := getCreateUserCommandForProxyAuth(proxyHeaderValue)
+      cmd := getCreateUserCommandForProxyAuth(username)
       if err := bus.Dispatch(cmd); err != nil {
         ctx.Handle(500, "Failed to create user specified in auth proxy header", err)
         return true
@@ -64,11 +64,15 @@ func initContextWithAuthProxy(ctx *Context) bool {
     }
   }
 
+  log.Debug("auth_proxy.go ::: before initialize session %v", username)
+
   // initialize session
   if err := ctx.Session.Start(ctx); err != nil {
     log.Error(3, "Failed to start session", err)
     return false
   }
+
+  log.Debug("auth_proxy.go ::: after initialize session %v", username)
 
   ctx.SignedInUser = query.Result
   ctx.IsSignedIn = true
