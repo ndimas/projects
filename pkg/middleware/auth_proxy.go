@@ -102,10 +102,6 @@ func getCreateUserCommandForProxyAuth(headerVal string) *m.CreateUserCommand {
 	return &cmd
 }
 
-func isExpired(exp_timestamp int64) bool {
-  return time.Now().Unix() > exp_timestamp
-}
-
 func lookupCallback(token map[string]interface{}) (interface{}, error) {
 
   log.Debug("auth_proxy.go ::: entered myLookupKey for token %v", token)
@@ -114,15 +110,15 @@ func lookupCallback(token map[string]interface{}) (interface{}, error) {
 
     token["client_id"],token["jti"],token["scope"],token["exp"],token["user_name"],token["authorities"])
 
-  expirationValue := token["exp"].(int64)
-
-  if isExpired ( expirationValue ) {
-    return nil, errors.New("auth_proxy.go ::: exp value on json object expired !!!")
-  }
-
-  //on error return nil, errors.New("foobar")
-
   return token, nil
+}
+
+func getTime() time.Time {
+  var returnTime time.Time = time.Now().Add(   time.Duration(2)*time.Hour*-1 )
+
+  log.Debug("auth_proxy.go ::: returning new date = %v", returnTime)
+
+  return returnTime
 }
 
 func isValidToken(inputToken string) (bool, string, interface{}) {
@@ -131,6 +127,8 @@ func isValidToken(inputToken string) (bool, string, interface{}) {
     log.Debug("auth_proxy.go ::: nil input token found")
     return false, "", nil
   }
+
+  jwt.TimeFunc = getTime
 
   token, err := jwt.Parse(inputToken, func(token *jwt.Token) (interface{}, error) {
 
@@ -143,6 +141,8 @@ func isValidToken(inputToken string) (bool, string, interface{}) {
     log.Debug("auth_proxy.go ::: no token found ")
     return false, "", nil
   }
+
+  log.Debug("auth_proxy.go ::: returned token from validation token=%v errors=%v", token, err)
 
   if token.Valid {
     log.Debug("auth_proxy.go ::: Token Validation Success!")
@@ -159,7 +159,7 @@ func isValidToken(inputToken string) (bool, string, interface{}) {
       log.Debug("auth_proxy.go ::: Token Expired or not active yet")
       return false, "", nil
     } else {
-      log.Debug("auth_proxy.go ::: Couldn't handle token")
+      log.Debug("auth_proxy.go ::: Couldn't handle token - Validation Error")
       return false, "", nil
     }
   } else {
