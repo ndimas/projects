@@ -104,6 +104,7 @@ var (
   RedirectUrl             string
 	AuthProxyHeaderProperty string
 	AuthProxyAutoSignUp     bool
+  AuthProxyPublicKey	    string
 
 	// Basic Auth
 	BasicAuthEnabled bool
@@ -462,7 +463,8 @@ func NewConfigContext(args *CommandLineArgs) error {
 	AuthProxyHeaderName = authProxy.Key("header_name").String()
 
 	AuthProxyHeaderProperty = authProxy.Key("header_property").String()
-	AuthProxyAutoSignUp = authProxy.Key("auto_sign_up").MustBool(true)
+	AuthProxyAutoSignUp     = authProxy.Key("auto_sign_up").MustBool(true)
+  AuthProxyPublicKey      = authProxy.Key("public_key").String()
 
 	authBasic := Cfg.Section("auth.basic")
 	BasicAuthEnabled = authBasic.Key("enabled").MustBool(true)
