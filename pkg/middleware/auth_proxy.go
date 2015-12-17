@@ -8,6 +8,7 @@ import (
 	"github.com/grafana/grafana/pkg/setting"
   "errors"
   "time"
+  "fmt"
 )
 
 func initContextWithAuthProxy(ctx *Context) bool {
@@ -110,7 +111,14 @@ func lookupCallback(token map[string]interface{}) (interface{}, error) {
 
     token["client_id"],token["jti"],token["scope"],token["exp"],token["user_name"],token["authorities"])
 
-  return token, nil
+  var public_key string =
+  "-----BEGIN PUBLIC KEY-----\n" +
+  "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnGp/Q5lh0P8nPL21oMMrt2RrkT9AW5jgYwLfSUnJVc9G6uR3cXRRDCjHqWU5WYwivcF180A6CWp/ireQFFBNowgc5XaA0kPpzEtgsA5YsNX7iSnUibB004iBTfU9hZ2Rbsc8cWqynT0RyN4TP1RYVSeVKvMQk4GT1r7JCEC+TNu1ELmbNwMQyzKjsfBXyIOCFU/E94ktvsTZUHF4Oq44DBylCDsS1k7/sfZC2G5EU7Oz0mhG8+Uz6MSEQHtoIi6mc8u64Rwi3Z3tscuWG2ShtsUFuNSAFNkY7LkLn+/hxLCu2bNISMaESa8dG22CIMuIeRLVcAmEWEWH5EEforTg+QIDAQAB\n" +
+  "-----END PUBLIC KEY-----"
+
+  var public_key_byte []byte = []byte(public_key)
+
+  return public_key_byte, nil
 }
 
 func getTime() time.Time {
@@ -131,6 +139,10 @@ func isValidToken(inputToken string) (bool, string, interface{}) {
   jwt.TimeFunc = getTime
 
   token, err := jwt.Parse(inputToken, func(token *jwt.Token) (interface{}, error) {
+
+    if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+      return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+    }
 
     log.Debug("auth_proxy.go ::: callback for token %v", token)
 
