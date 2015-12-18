@@ -144,6 +144,7 @@ type SignedInUser struct {
 	Theme          string
 	ApiKeyId       int64
 	IsGrafanaAdmin bool
+  PsevdoUsername string `json:"psevdoUsername"`
 }
 
 type UserProfileDTO struct {
@@ -153,6 +154,7 @@ type UserProfileDTO struct {
 	Theme          string `json:"theme"`
 	OrgId          int64  `json:"orgId"`
 	IsGrafanaAdmin bool   `json:"isGrafanaAdmin"`
+  PsevdoUsername string `json:"psevdoUsername"`
 }
 
 type UserSearchHitDTO struct {

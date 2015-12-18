@@ -9,20 +9,22 @@ import (
 
 // GET /api/user  (current authenticated user)
 func GetSignedInUser(c *middleware.Context) Response {
-	return getUserUserProfile(c.UserId)
+  return getUserUserProfile(c.UserId, c.PsevdoUsername)
 }
 
 // GET /api/user/:id
 func GetUserById(c *middleware.Context) Response {
-	return getUserUserProfile(c.ParamsInt64(":id"))
+	return getUserUserProfile(c.ParamsInt64(":id"), c.PsevdoUsername)
 }
 
-func getUserUserProfile(userId int64) Response {
+func getUserUserProfile(userId int64, psevdoUsername string) Response {
 	query := m.GetUserProfileQuery{UserId: userId}
 
 	if err := bus.Dispatch(&query); err != nil {
 		return ApiError(500, "Failed to get user", err)
 	}
+
+  query.Result.PsevdoUsername = psevdoUsername
 
 	return Json(200, query.Result)
 }

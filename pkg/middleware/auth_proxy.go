@@ -83,8 +83,11 @@ func initContextWithAuthProxy(ctx *Context) bool {
 
   log.Debug("auth_proxy.go ::: after initialize session %v", username)
 
-  ctx.SignedInUser = query.Result
-  ctx.IsSignedIn = true
+  query.Result.PsevdoUsername = username
+
+  ctx.SignedInUser    = query.Result
+  ctx.PsevdoUsername  = username
+  ctx.IsSignedIn      = true
   ctx.Session.Set(SESS_KEY_USERID, ctx.UserId)
 
   return true
