@@ -11,6 +11,7 @@ import (
 	m "github.com/grafana/grafana/pkg/models"
 	"github.com/grafana/grafana/pkg/setting"
 	"github.com/grafana/grafana/pkg/util"
+  "github.com/grafana/grafana/pkg/log"
 )
 
 func init() {
@@ -19,6 +20,7 @@ func init() {
 	bus.AddHandler("sql", UpdateUser)
 	bus.AddHandler("sql", ChangeUserPassword)
 	bus.AddHandler("sql", GetUserByLogin)
+  bus.AddHandler("sql", GetUserByLoginNew)
 	bus.AddHandler("sql", SetUsingOrg)
 	bus.AddHandler("sql", GetUserProfile)
 	bus.AddHandler("sql", GetSignedInUser)
@@ -154,6 +156,33 @@ func GetUserById(query *m.GetUserByIdQuery) error {
 
 	return nil
 }
+
+func GetUserByLoginNew(query *m.GetUserByLoginQueryNew) error {
+  if query.Login == "" {
+    return m.ErrUserNotFound
+  }
+
+  log.Debug("sqlstore/user.go ::: GetUserByLoginNew entered method with query=%v ", query)
+
+  user := new(m.User)
+
+  user = &m.User{Login: query.Login}
+
+  has, err := x.Get(user)
+
+  log.Debug("sqlstore/user.go ::: GetUserByLoginNew finished searching with query=%v returned has=%v err=%v user=%v", query, has, err, user)
+
+  if err != nil {
+    return err
+  } else if has == false {
+    return m.ErrUserNotFound
+  }
+
+  query.Result = user
+
+  return nil
+}
+
 
 func GetUserByLogin(query *m.GetUserByLoginQuery) error {
 	if query.LoginOrEmail == "" {

@@ -95,6 +95,11 @@ type GetUserByLoginQuery struct {
 	Result       *User
 }
 
+type GetUserByLoginQueryNew struct {
+  Login        string
+  Result       *User
+}
+
 type GetUserByIdQuery struct {
 	Id     int64
 	Result *User
