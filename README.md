@@ -1,5 +1,5 @@
 
-## Features
+
 ### Graphite Target Editor
 - Graphite target expression parser
 - Feature rich query composer
