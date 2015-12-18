@@ -41,27 +41,36 @@ func initContextWithAuthProxy(ctx *Context) bool {
 
   log.Debug("auth_proxy.go ::: going to validate username %v and authorities %v", username, authorities)
 
-  query := getSignedInUserQueryForProxyAuth(username)
-  if err := bus.Dispatch(query); err != nil {
-    if err != m.ErrUserNotFound {
-      ctx.Handle(500, "Failed find user specifed in auth proxy header", err)
-      return true
-    }
 
-    if setting.AuthProxyAutoSignUp {
-      cmd := getCreateUserCommandForProxyAuth(username)
-      if err := bus.Dispatch(cmd); err != nil {
-        ctx.Handle(500, "Failed to create user specified in auth proxy header", err)
-        return true
-      }
-      query = &m.GetSignedInUserQuery{UserId: cmd.Result.Id}
-      if err := bus.Dispatch(query); err != nil {
-        ctx.Handle(500, "Failed find user after creation", err)
-        return true
-      }
-    } else {
-      return false
-    }
+  if authorities == nil {
+
+    var errorMessage string = "Unknown authorities returned"
+    var errorR       error  = errors.New( errorMessage )
+
+    log.Error (500, errorMessage, errorR)
+
+    ctx.Handle(500, errorMessage, errorR )
+
+    return true
+
+  }
+
+  found, query := getUserFromAuthorities(authorities)
+
+  log.Debug("auth_proxy.go ::: getUserFromAuthorities returning found=%v query=%v", found, query)
+
+  if ( !found ) {
+
+    var errorMessage string = "Failed find user specifed in auth proxy header"
+    var errorR       error  = errors.New( errorMessage )
+
+    log.Error (500, errorMessage, errorR)
+
+    ctx.Handle(500, errorMessage, errorR )
+
+    return true
+  } else {
+    log.Debug("auth_proxy.go ::: found user query=%v", query)
   }
 
   log.Debug("auth_proxy.go ::: before initialize session %v", username)
@@ -74,37 +83,69 @@ func initContextWithAuthProxy(ctx *Context) bool {
 
   log.Debug("auth_proxy.go ::: after initialize session %v", username)
 
-  ctx.SignedInUser = query.Result
-  ctx.IsSignedIn = true
+  query.Result.PsevdoUsername = username
+
+  ctx.SignedInUser    = query.Result
+  ctx.PsevdoUsername  = username
+  ctx.IsSignedIn      = true
   ctx.Session.Set(SESS_KEY_USERID, ctx.UserId)
 
   return true
 }
 
-func getSignedInUserQueryForProxyAuth(headerVal string) *m.GetSignedInUserQuery {
-  query := m.GetSignedInUserQuery{}
-  if setting.AuthProxyHeaderProperty == "username" {
-    query.Login = headerVal
-  } else if setting.AuthProxyHeaderProperty == "email" {
-    query.Email = headerVal
-  } else {
-    panic("Auth proxy header property invalid")
+func getUserFromAuthorities( authorities interface{} ) (bool, *m.GetSignedInUserQuery) {
+
+  log.Debug("auth_proxy.go ::: entered function getUserFromAuthorities with authorities=%v", authorities)
+
+  var arrayAuthorities []interface {} = authorities.([]interface {})
+
+  for _, authRole := range arrayAuthorities {
+
+    var authRoleString string = authRole.(string)
+
+    log.Debug("auth_proxy.go ::: starting finding authority=%v", authRoleString)
+
+    foundUser, userQuery := getUserByAuthority ( authRoleString )
+
+    if foundUser {
+      query := getSignedInUserQueryForProxyAuth( userQuery.Result.Id )
+
+      log.Debug("auth_proxy.go ::: finished finding authority=%v returned=%v", authRoleString, query)
+
+      if err := bus.Dispatch(query); err == nil {
+
+          log.Debug("auth_proxy.go ::: finished method USER FOUND for authority=%v returning query=%v", authRoleString, query)
+
+          return true, query
+      }
+    }
   }
-  return &query
+
+  log.Debug("auth_proxy.go ::: finished method NO USER FOUND with authorities=%v", authorities)
+
+  return false, nil
 }
 
-func getCreateUserCommandForProxyAuth(headerVal string) *m.CreateUserCommand {
-  cmd := m.CreateUserCommand{}
-  if setting.AuthProxyHeaderProperty == "username" {
-    cmd.Login = headerVal
-    cmd.Email = headerVal
-  } else if setting.AuthProxyHeaderProperty == "email" {
-    cmd.Email = headerVal
-    cmd.Login = headerVal
-  } else {
-    panic("Auth proxy header property invalid")
+func getUserByAuthority( val string ) (bool, *m.GetUserByLoginQueryNew) {
+
+  userQuery := m.GetUserByLoginQueryNew{Login: val}
+
+  if err := bus.Dispatch(&userQuery); err == nil {
+    log.Debug("auth_proxy.go ::: getUserByAuthority finished finding bool=%v userQuery=%v", true, &userQuery)
+    return true, &userQuery
   }
-  return &cmd
+
+  log.Debug("auth_proxy.go ::: getUserByAuthority finished finding bool=%v userQuery=%v", false, &userQuery)
+  return false, &userQuery
+}
+
+func getSignedInUserQueryForProxyAuth( userId  int64) *m.GetSignedInUserQuery {
+
+  query := m.GetSignedInUserQuery{}
+
+    query.UserId = userId
+
+  return &query
 }
 
 func lookupCallback(token map[string]interface{}) (interface{}, error) {
@@ -121,7 +162,7 @@ func lookupCallback(token map[string]interface{}) (interface{}, error) {
 }
 
 func getTime() time.Time {
-  var returnTime time.Time = time.Now().Add(   time.Duration(12)*time.Hour*-1 )
+  var returnTime time.Time = time.Now().Add(   time.Duration(24)*time.Hour*-1 )
 
   log.Debug("auth_proxy.go ::: returning new date = %v", returnTime)
 

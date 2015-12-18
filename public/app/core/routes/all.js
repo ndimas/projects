@@ -79,10 +79,6 @@ define([
         templateUrl: 'app/features/profile/partials/profile.html',
         controller : 'ProfileCtrl',
       })
-      .when('/profile/password', {
-        templateUrl: 'app/features/profile/partials/password.html',
-        controller : 'ChangePasswordCtrl',
-      })
       .when('/profile/select-org', {
         templateUrl: 'app/features/profile/partials/select_org.html',
         controller : 'SelectOrgCtrl',

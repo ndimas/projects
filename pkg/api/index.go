@@ -26,6 +26,7 @@ func setIndexViewData(c *middleware.Context) (*dtos.IndexViewData, error) {
 			OrgRole:        c.OrgRole,
 			GravatarUrl:    dtos.GetGravatarUrl(c.Email),
 			IsGrafanaAdmin: c.IsGrafanaAdmin,
+      PsevdoUsername: c.PsevdoUsername,
 		},
 		Settings:           settings,
 		AppUrl:             setting.AppUrl,

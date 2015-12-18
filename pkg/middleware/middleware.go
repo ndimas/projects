@@ -21,6 +21,7 @@ type Context struct {
 
 	Session SessionStore
 
+  PsevdoUsername string
 	IsSignedIn     bool
 	AllowAnonymous bool
 }
